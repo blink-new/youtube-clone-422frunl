@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VideoCard3D from './VideoCard3D'
 import ThreeBackground from './ThreeBackground'
+import { useVideos } from '../../hooks/useVideos'
+import { useAuth } from '../../hooks/useAuth'
 
 const categories = [
   'All', 'Music', 'Gaming', 'News', 'Sports', 'Entertainment', 
@@ -136,19 +138,24 @@ interface HomePage3DProps {
 }
 
 export default function HomePage3D({ sidebarCollapsed }: HomePage3DProps) {
+  const { user, isAuthenticated } = useAuth()
+  const { videos, loading, error } = useVideos()
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [visibleVideos, setVisibleVideos] = useState(8)
+  
+  // Combine real videos with mock videos for demo purposes
+  const allVideos = [...videos, ...mockVideos]
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
-        setVisibleVideos(prev => Math.min(prev + 4, mockVideos.length))
+        setVisibleVideos(prev => Math.min(prev + 4, allVideos.length))
       }
     }
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [allVideos.length])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -231,35 +238,60 @@ export default function HomePage3D({ sidebarCollapsed }: HomePage3DProps) {
           animate="visible"
         >
           {/* Enhanced Responsive Video Grid */}
-          <div className="video-grid">
-            <AnimatePresence mode="popLayout">
-              {mockVideos.slice(0, visibleVideos).map((video, index) => (
+          {loading && allVideos.length === 0 ? (
+            <div className="video-grid">
+              {Array.from({ length: 8 }).map((_, index) => (
                 <motion.div
-                  key={video.id}
-                  variants={itemVariants}
-                  layout
-                  className="group"
-                  style={{
-                    // Ensure proper aspect ratio for video cards
-                    aspectRatio: '16/12'
-                  }}
+                  key={`skeleton-${index}`}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <VideoCard3D
-                    title={video.title}
-                    channel={video.channel}
-                    views={video.views}
-                    uploadedAt={video.uploadedAt}
-                    duration={video.duration}
-                    thumbnail={video.thumbnail}
-                    channelAvatar={video.channelAvatar}
-                  />
+                  <div className="aspect-video bg-gray-200 animate-pulse" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse" />
+                    <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse" />
+                  </div>
                 </motion.div>
               ))}
-            </AnimatePresence>
-          </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-500 text-lg">Error loading videos: {error}</p>
+            </div>
+          ) : (
+            <div className="video-grid">
+              <AnimatePresence mode="popLayout">
+                {allVideos.slice(0, visibleVideos).map((video, index) => (
+                  <motion.div
+                    key={video.id}
+                    variants={itemVariants}
+                    layout
+                    className="group"
+                    style={{
+                      // Ensure proper aspect ratio for video cards
+                      aspectRatio: '16/12'
+                    }}
+                  >
+                    <VideoCard3D
+                      title={video.title}
+                      channel={video.channelName || video.channel}
+                      views={video.viewCount ? `${video.viewCount} views` : video.views}
+                      uploadedAt={video.createdAt ? new Date(video.createdAt) : video.uploadedAt}
+                      duration={video.duration || '10:00'}
+                      thumbnail={video.thumbnailUrl || video.thumbnail}
+                      channelAvatar={video.channelAvatar}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Loading indicator */}
-          {visibleVideos < mockVideos.length && (
+          {visibleVideos < allVideos.length && (
             <motion.div
               className="flex justify-center mt-16"
               initial={{ opacity: 0 }}

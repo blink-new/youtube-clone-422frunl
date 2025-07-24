@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Text, RoundedBox } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Menu, Video, Bell, User } from 'lucide-react'
+import { Search, Menu, Video, Bell, User, Plus } from 'lucide-react'
 import * as THREE from 'three'
+import { useAuth } from '../../hooks/useAuth'
+import { VideoUpload } from '../VideoUpload'
 
 function FloatingLogo() {
   const logoRef = useRef<THREE.Group>(null!)
@@ -57,8 +59,10 @@ function SearchBar3D({ isExpanded }: { isExpanded: boolean }) {
 }
 
 export default function Header3D() {
+  const { user, isAuthenticated, login, logout } = useAuth()
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showUpload, setShowUpload] = useState(false)
 
   return (
     <motion.header 
@@ -130,38 +134,65 @@ export default function Header3D() {
 
         {/* Right section with animated buttons */}
         <div className="flex items-center space-x-2">
-          <motion.button
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Video className="w-6 h-6" />
-          </motion.button>
-          
-          <motion.button
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Bell className="w-6 h-6" />
-            <motion.div
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </motion.button>
-          
-          <motion.button
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-          </motion.button>
+          {isAuthenticated ? (
+            <>
+              <motion.button
+                onClick={() => setShowUpload(true)}
+                className="flex items-center space-x-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Create</span>
+              </motion.button>
+              
+              <motion.button
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Bell className="w-6 h-6" />
+                <motion.div
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </motion.button>
+              
+              <motion.button
+                onClick={logout}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                title={`Signed in as ${user?.email}`}
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+              </motion.button>
+            </>
+          ) : (
+            <motion.button
+              onClick={login}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors font-medium"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Sign In
+            </motion.button>
+          )}
         </div>
       </div>
+      
+      {/* Video Upload Modal */}
+      <AnimatePresence>
+        {showUpload && (
+          <VideoUpload
+            isOpen={showUpload}
+            onClose={() => setShowUpload(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.header>
   )
 }
